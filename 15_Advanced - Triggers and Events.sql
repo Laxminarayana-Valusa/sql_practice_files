@@ -85,6 +85,3 @@ END $$
 -- if we run it again you can see Jerry is now fired -- or I mean retired
 SELECT * 
 FROM parks_and_recreation.employee_demographics;
-
-select*
-from parks_and_recreation.employee_demographics;
