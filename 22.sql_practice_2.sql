@@ -43,7 +43,9 @@ StreakGroups AS (
         user_id,
         event_date,
         DATE_SUB(event_date, INTERVAL ROW_NUMBER() OVER(PARTITION BY user_id ORDER BY event_date) DAY) AS grp
-    FROM DistinctLogins
+		-- DATE_SUB('2026-05-10', INTERVAL 1 DAY) → Subtracts 1 day (gives 2026-05-09)
+        -- Day subtract as day=1,2,3.. rather than months, years
+   FROM DistinctLogins
 )
 SELECT 
     user_id,
@@ -54,4 +56,77 @@ FROM StreakGroups
 GROUP BY user_id, grp
 HAVING COUNT(*) >= 3;
 
+-- 2. First Purchase Per User
+with RankedPurchases as (
+	select*,
+		row_number() over(partition by user_id order by event_date asc, event_id asc) rn
+	from user_activity
+    where event_type = 'purchase' 
+)
+select 
+	user_id,
+    event_date as first_purchase_date,
+    amount as first_purchase_amount
+from RankedPurchases
+where rn = 1;
 
+-- 3. Second Highest Purchase Per User
+with Ranked_purchases as (
+	select*,
+		dense_rank() over(partition by user_id order by amount desc) drnk
+	from user_activity
+    where event_type = 'purchase'
+)
+select distinct
+	user_id,
+    amount as Second_purchase_date
+from Ranked_purchases
+where drnk = 2;
+
+-- 4. Identify & Remove Duplicate Rows
+-- Step 1: Preview duplicates
+WITH DuplicateCheck AS (
+    SELECT 
+        event_id,
+        user_id,
+        event_type,
+        amount,
+        event_date,
+        ROW_NUMBER() OVER(
+            PARTITION BY user_id, event_type, amount, event_date 
+            ORDER BY event_id ASC
+        ) AS rn
+    FROM user_activity
+)
+SELECT * FROM DuplicateCheck WHERE rn > 1;
+
+-- Step 2: Delete duplicates in MySQL 8.0+
+WITH DuplicateCheck AS (
+    SELECT 
+        event_id,
+        ROW_NUMBER() OVER(
+            PARTITION BY user_id, event_type, amount, event_date 
+            ORDER BY event_id ASC
+        ) AS rn
+    FROM user_activity
+)
+DELETE FROM user_activity
+WHERE event_id IN (SELECT event_id FROM DuplicateCheck WHERE rn > 1);
+
+select* from user_activity;
+
+-- 5. Median Purchase Amount
+with OrderedPurchases as (
+	select
+		amount,
+		row_number() over(order by amount asc, event_id asc ) rn,
+        count(*) over() as total_rows
+	from user_activity
+    where event_type = 'purchase'
+)
+select avg(amount) as median_purchase
+from OrderedPurchases
+where rn in (Floor((total_rows+1)/2), CEIL((total_rows+1)/2));
+
+
+	
