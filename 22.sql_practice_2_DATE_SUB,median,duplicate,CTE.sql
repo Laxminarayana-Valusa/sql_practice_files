@@ -1,5 +1,5 @@
 USE school_db;
-
+drop table user_activity;
 CREATE TABLE user_activity (
     event_id INT PRIMARY KEY,
     user_id INT,
@@ -114,6 +114,7 @@ DELETE FROM user_activity
 WHERE event_id IN (SELECT event_id FROM DuplicateCheck WHERE rn > 1);
 
 select* from user_activity;
+select*, count(*) over() as total_rows from user_activity where event_type = 'purchase';
 
 -- 5. Median Purchase Amount
 with OrderedPurchases as (

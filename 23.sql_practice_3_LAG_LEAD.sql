@@ -18,8 +18,42 @@ INSERT INTO monthly_sales VALUES
 (7, 'South', '2026-03-01', 11000),
 (8, 'South', '2026-04-01', 10500);
 
--- call monthly_sales
+
+CREATE TABLE user_activity (
+    event_id INT PRIMARY KEY,
+    user_id INT,
+    event_type VARCHAR(20),
+    amount INT,
+    event_date DATE
+);
+
+INSERT INTO user_activity VALUES
+-- User 101: Has a 3-day consecutive login streak (Jan 1, 2, 3), a gap, then Jan 6
+(1, 101, 'login', 0, '2026-01-01'),
+(2, 101, 'purchase', 500, '2026-01-01'),
+(3, 101, 'login', 0, '2026-01-02'),
+(4, 101, 'login', 0, '2026-01-03'),
+(5, 101, 'purchase', 1200, '2026-01-03'),
+(6, 101, 'login', 0, '2026-01-06'),
+
+-- User 102: Has multiple purchases on the same day and a 2-day streak
+(7, 102, 'login', 0, '2026-01-02'),
+(8, 102, 'purchase', 300, '2026-01-02'),
+(9, 102, 'purchase', 300, '2026-01-02'),
+(10, 102, 'login', 0, '2026-01-03'),
+(11, 102, 'purchase', 900, '2026-01-05'),
+
+-- User 103: Single login, big purchase
+(12, 103, 'login', 0, '2026-01-04'),
+(13, 103, 'purchase', 1500, '2026-01-04');
+
+
+-- call monthly_sales table
 select* from monthly_sales;
+
+-- call user_activity table
+select* from user_Activity;
+
 -- 1. Month-over-Month (MoM) Growth %
 select
 	region,
@@ -88,3 +122,5 @@ SELECT
     revenue AS current_rev,
     LEAD(revenue, 1, 0) OVER(PARTITION BY region ORDER BY sales_month) AS next_rev
 FROM monthly_sales;
+
+
